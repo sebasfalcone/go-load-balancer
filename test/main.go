@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync"
+	"net/url"
 
-	"github.com/sebasfalcone/go-load-balancer/cmd/balancer"
+	"github.com/sebasfalcone/go-load-balancer/internal/pkg/loadBalancer"
+	"github.com/sebasfalcone/go-load-balancer/internal/pkg/proxy"
+	"github.com/sebasfalcone/go-load-balancer/internal/pkg/scheduler"
 )
 
 func serveBackend(serverName string, serverPort string) {
@@ -20,24 +22,30 @@ func serveBackend(serverName string, serverPort string) {
 }
 
 func main() {
-	waitGroup := new(sync.WaitGroup)
-	waitGroup.Add(3)
 
 	go func() {
 		serveBackend("web1", ":81")
-		waitGroup.Done()
 	}()
 
 	go func() {
 		serveBackend("web2", ":82")
-		waitGroup.Done()
 	}()
 
 	go func() {
 		serveBackend("web3", ":83")
-		waitGroup.Done()
 	}()
 
-	balancer.Start()
-	waitGroup.Wait()
+	p1Url, _ := url.Parse("http://localhost:81")
+	p1 := proxy.NewProxy(p1Url, "web1")
+
+	p2Url, _ := url.Parse("http://localhost:82")
+	p2 := proxy.NewProxy(p2Url, "web2")
+
+	p3Url, _ := url.Parse("http://localhost:83")
+	p3 := proxy.NewProxy(p3Url, "web3")
+
+	r := scheduler.RoundRobin{}
+	r.AddProxys(p1, p2, p3)
+
+	loadBalancer.Initialize(r.Instance(), ":80")
 }
