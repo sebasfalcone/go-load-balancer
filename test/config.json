@@ -2,7 +2,7 @@
 	"proxy": {
 		"port": "100"
 	},
-	"backends": [
+	"proxys": [
 		{
 			"url": "http://localhost:81/"
 		},
