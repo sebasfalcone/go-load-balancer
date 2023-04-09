@@ -7,6 +7,17 @@ import (
 	"time"
 )
 
+type HealthChecker interface {
+	// Returns the health status of the proxy
+	Status() bool
+
+	// Sets the health check function and period, for the proxy health check
+	SetHealthCheck(check func(addr *url.URL) bool, period time.Duration)
+
+	// Check function
+	CheckFunction(addr *url.URL) bool
+}
+
 type Health struct {
 	// The origin of the proxy
 	origin *url.URL
@@ -32,21 +43,20 @@ var defaultCheckPeriod = 10 * time.Second
 
 // Creates a new health check for the proxy
 func NewHealth(origin *url.URL) *Health {
-
 	h := &Health{
 		origin: origin,
-		check:  defaultCheckFunction,
 		period: defaultCheckPeriod,
 		cancel: make(chan struct{}),
-		alive:  defaultCheckFunction(origin),
 	}
+
+	h.check = h.CheckFunction
+	h.alive = h.check(h.origin)
 
 	h.start()
 	return h
 }
 
-// Default health check function
-var defaultCheckFunction = func(addr *url.URL) bool {
+func (h *Health) CheckFunction(addr *url.URL) bool {
 	conn, err := net.DialTimeout("tcp", addr.Host, defaultCheckTimeout)
 	if err != nil {
 		return false
