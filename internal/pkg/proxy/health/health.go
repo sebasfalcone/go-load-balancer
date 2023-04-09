@@ -8,12 +8,6 @@ import (
 )
 
 type HealthChecker interface {
-	// Returns the health status of the proxy
-	Status() bool
-
-	// Sets the health check function and period, for the proxy health check
-	SetHealthCheck(check func(addr *url.URL) bool, period time.Duration)
-
 	// Check function
 	CheckFunction(addr *url.URL) bool
 }
